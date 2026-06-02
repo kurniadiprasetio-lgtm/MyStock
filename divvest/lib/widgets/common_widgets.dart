@@ -35,10 +35,10 @@ class GlassCard extends StatelessWidget {
           boxShadow: isDark
               ? null
               : [
-                  BoxShadow(
+                  const BoxShadow(
                     color: AppColors.lightCardShadow,
                     blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ],
         ),
@@ -139,10 +139,10 @@ class StatCard extends StatelessWidget {
         boxShadow: isDark
             ? null
             : [
-                BoxShadow(
+                const BoxShadow(
                   color: AppColors.lightCardShadow,
                   blurRadius: 6,
-                  offset: const Offset(0, 2),
+                  offset: Offset(0, 2),
                 ),
               ],
       ),

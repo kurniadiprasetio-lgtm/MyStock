@@ -164,9 +164,9 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                 _buildMetrics(_summary!, isDark),
                                 _buildChart(isDark),
                                 _buildBEPCard(_summary!, isDark),
-                                SectionHeader(title: 'Dividend History'),
+                                const SectionHeader(title: 'Dividend History'),
                                 _buildDividendHistory(_dividends, isDark),
-                                SectionHeader(title: 'Buy History'),
+                                const SectionHeader(title: 'Buy History'),
                                 _buildBuyHistory(_entries, isDark),
                                 const SizedBox(height: 20),
                               ],
@@ -311,7 +311,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   }
 
   Widget _buildChart(bool isDark) {
-    final lineColor = AppColors.primary;
+    const lineColor = AppColors.primary;
     final gradientColors = [
       AppColors.primary.withValues(alpha: 0.3),
       AppColors.primary.withValues(alpha: 0.0),

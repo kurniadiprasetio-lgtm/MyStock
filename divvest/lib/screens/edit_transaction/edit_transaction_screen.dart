@@ -189,7 +189,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
         label: 'Date',
         controller: _dateController,
         readOnly: true,
-        suffixIcon: Icon(Icons.calendar_today, size: 18),
+        suffixIcon: const Icon(Icons.calendar_today, size: 18),
       ),
     );
   }

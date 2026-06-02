@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:divvest/widgets/main_shell.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     // After the animation, navigate to the main UI.
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => MainShell()),
+        MaterialPageRoute(builder: (_) => const MainShell()),
       );
     });
   }

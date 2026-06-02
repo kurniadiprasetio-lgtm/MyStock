@@ -43,7 +43,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> with WidgetsBindingOb
       title: 'Portfolio',
       showBackButton: false,
       actions: [
-        AppIconButton(icon: Icons.search_outlined),
+        const AppIconButton(icon: Icons.search_outlined),
         const SizedBox(width: 8),
         AppIconButton(
           icon: Icons.add,

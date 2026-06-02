@@ -36,9 +36,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       title: 'DivVest',
       showBackButton: false,
       actions: [
-        AppIconButton(icon: Icons.notifications_outlined),
+        const AppIconButton(icon: Icons.notifications_outlined),
         const SizedBox(width: 8),
-        AppIconButton(icon: Icons.settings_outlined),
+        const AppIconButton(icon: Icons.settings_outlined),
       ],
       body: Consumer<PortfolioProvider>(
         builder: (context, provider, child) {

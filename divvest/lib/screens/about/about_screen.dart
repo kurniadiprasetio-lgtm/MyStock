@@ -189,7 +189,7 @@ class AboutScreen extends StatelessWidget {
       child: AppCard(
         child: Column(
           children: [
-            Icon(Icons.info_outline, size: 24, color: AppColors.warning),
+            const Icon(Icons.info_outline, size: 24, color: AppColors.warning),
             const SizedBox(height: 12),
             Text(
               'Data harga saham bersumber dari Yahoo Finance dan mungkin tidak real-time. Aplikasi ini tidak menyediakan saran investasi. Semua keputusan investasi adalah tanggung jawab pengguna.',

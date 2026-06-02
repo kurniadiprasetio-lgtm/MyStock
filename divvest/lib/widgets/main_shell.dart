@@ -45,10 +45,10 @@ class _MainShellState extends State<MainShell> {
           boxShadow: isDark
               ? null
               : [
-                  BoxShadow(
-                    color: const Color.fromRGBO(0, 0, 0, 0.05),
+                  const BoxShadow(
+                    color: Color.fromRGBO(0, 0, 0, 0.05),
                     blurRadius: 10,
-                    offset: const Offset(0, -2),
+                    offset: Offset(0, -2),
                   ),
                 ],
         ),
