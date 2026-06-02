@@ -15,7 +15,6 @@ class AddTransactionScreen extends StatefulWidget {
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool isBuy = true;
-  bool isReinvest = false;
   String? _selectedTicker;
   final _dateController = TextEditingController();
   final _lotsController = TextEditingController();
@@ -30,8 +29,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _showStockDropdown = false;
   List<Stock> _stocks = [];
   List<Stock> _filteredStocks = [];
-  List<DividendRecord> _availableDividends = [];
-  int? _selectedDividendId;
 
   @override
   void initState() {
@@ -53,20 +50,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final q = query.toUpperCase();
     setState(() {
       if (q.isEmpty) {
+        // Show all stocks when query is empty
         _filteredStocks = _stocks;
         _showStockDropdown = _stocks.isNotEmpty;
-      } else {
-        _filteredStocks = _stocks.where((s) {
-          return s.ticker.toUpperCase().contains(q) ||
-              s.name.toUpperCase().contains(q);
-        }).toList();
-        _showStockDropdown = _filteredStocks.isNotEmpty;
+        return;
       }
 
+      // Filter stocks by ticker or name
+      _filteredStocks = _stocks.where((s) {
+        return s.ticker.toUpperCase().contains(q) || s.name.toUpperCase().contains(q);
+      }).toList();
+
+      // If we have matches, show the dropdown
+      _showStockDropdown = _filteredStocks.isNotEmpty;
+
+      // If there is an exact ticker match, select it automatically
       final exactMatch = _filteredStocks.where((s) => s.ticker.toUpperCase() == q).toList();
       if (exactMatch.length == 1) {
         _selectedTicker = exactMatch.first.ticker;
+        return;
       }
+
+      // No matches – allow manual entry of the typed ticker
+      // Set the selected ticker to the raw query (original case) and hide dropdown.
+      _selectedTicker = query;
+      _showStockDropdown = false;
     });
   }
 
@@ -77,19 +85,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _showStockDropdown = false;
       _stockFocusNode.unfocus();
     });
-    _loadDividendsForTicker(stock.ticker);
-  }
-
-  Future<void> _loadDividendsForTicker(String ticker) async {
-    final provider = context.read<PortfolioProvider>();
-    final dividends = await provider.getAllDividends();
-    final tickerDividends = dividends.where((d) => d.ticker == ticker).toList();
-    if (mounted) {
-      setState(() {
-        _availableDividends = tickerDividends;
-        _selectedDividendId = null;
-      });
-    }
   }
 
   Future<void> _loadStocks() async {
@@ -175,8 +170,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       lots: lots,
       pricePerLot: price,
       fee: fee,
-      isReinvested: isReinvest,
-      sourceDividendId: isReinvest ? _selectedDividendId : null,
+      isReinvested: false,
+      sourceDividendId: null,
       notes: _notesController.text.isEmpty ? null : _notesController.text,
     );
 
@@ -207,7 +202,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   children: [
                     _buildToggle(isDark),
                     _buildStockField(isDark),
-                    if (isBuy && isReinvest) _buildDividendSelector(isDark),
                     _buildDateField(),
                     _buildLotsAndPrice(isDark),
                     _buildFeeField(),
@@ -230,33 +224,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget _buildToggle(bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Column(
-        children: [
-          AppToggle<bool>(
-            items: const [
-              AppToggleItem(value: true, label: '📥 Buy'),
-              AppToggleItem(value: false, label: '📤 Sell'),
-            ],
-            selectedValue: isBuy,
-            onChanged: (value) => setState(() {
-              isBuy = value;
-              if (value) {
-                isReinvest = false;
-              }
-            }),
-          ),
-          if (isBuy) ...[
-            const SizedBox(height: 8),
-            AppToggle<bool>(
-              items: const [
-                AppToggleItem(value: false, label: 'Regular Buy'),
-                AppToggleItem(value: true, label: '🔄 Reinvestment'),
-              ],
-              selectedValue: isReinvest,
-              onChanged: (value) => setState(() => isReinvest = value),
-            ),
-          ],
+      child: AppToggle<bool>(
+        items: const [
+          AppToggleItem(value: true, label: '📥 Buy'),
+          AppToggleItem(value: false, label: '📤 Sell'),
         ],
+        selectedValue: isBuy,
+        onChanged: (value) => setState(() => isBuy = value),
       ),
     );
   }
@@ -343,7 +317,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     controller: _stockSearchController,
                     focusNode: _stockFocusNode,
                     hintText: 'Search stock...',
-                    suffixIcon: Icon(Icons.arrow_drop_down, size: 24),
+                    suffixIcon: const Icon(Icons.arrow_drop_down, size: 24),
                     onTap: () {
                       setState(() => _showStockDropdown = true);
                     },
@@ -355,70 +329,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildDividendSelector(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Source Dividend',
-            style: AppTypography.labelMedium.copyWith(
-              color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (_availableDividends.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.inputBackground : AppColors.lightInputBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark ? AppColors.inputBorder : AppColors.lightInputBorder,
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                'No dividend records for ${_selectedTicker ?? "this stock"}',
-                style: AppTypography.bodySmall.copyWith(
-                  color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
-                ),
-              ),
-            )
-          else
-            AppDropdownField<int>(
-              label: '',
-              value: _selectedDividendId,
-              items: _availableDividends.map((d) {
-                return DropdownMenuItem(
-                  value: d.id,
-                  child: Text(
-                    '${d.exDate.year} - ${FormatUtils.currency(d.netAmount)} (${d.dividendType.name})',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedDividendId = value;
-                  final selected = _availableDividends.firstWhere((d) => d.id == value);
-                  _lotsController.text = '${selected.reinvestLots}';
-                  _priceController.text = selected.dividendPerLot.toStringAsFixed(0);
-                });
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStockDropdown(bool isDark) {
     if (!_showStockDropdown || _filteredStocks.isEmpty) return const SizedBox.shrink();
 
     return CompositedTransformFollower(
       link: _stockOverlayLink,
-      offset: const Offset(0, 52),
+      targetAnchor: Alignment.bottomLeft,
+      followerAnchor: Alignment.topLeft,
+      offset: const Offset(0, 8),
       showWhenUnlinked: false,
       child: Material(
         elevation: 8,

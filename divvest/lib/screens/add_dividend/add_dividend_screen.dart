@@ -218,7 +218,7 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
               controller: _stockSearchController,
               focusNode: _stockFocusNode,
               hintText: 'Search stock...',
-              suffixIcon: Icon(Icons.arrow_drop_down, size: 24),
+              suffixIcon: const Icon(Icons.arrow_drop_down, size: 24),
               onTap: () {
                 setState(() => _showStockDropdown = true);
               },
@@ -235,7 +235,9 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
 
     return CompositedTransformFollower(
       link: _stockOverlayLink,
-      offset: const Offset(0, 52),
+      targetAnchor: Alignment.bottomLeft,
+      followerAnchor: Alignment.topLeft,
+      offset: const Offset(0, 4),
       showWhenUnlinked: false,
       child: Material(
         elevation: 8,

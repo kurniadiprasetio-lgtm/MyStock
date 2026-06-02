@@ -12,11 +12,14 @@ class FormatUtils {
 
   static String currencyShort(double amount) {
     if (amount >= 1000000000) {
-      return 'Rp ${(amount / 1000000000).toStringAsFixed(1)}B';
+      // 1 milyar = 1 Mrd (Indonesian abbreviation)
+      return 'Rp ${(amount / 1000000000).toStringAsFixed(1)}Mrd';
     } else if (amount >= 1000000) {
-      return 'Rp ${(amount / 1000000).toStringAsFixed(1)}M';
+      // 1 juta = 1 Jt
+      return 'Rp ${(amount / 1000000).toStringAsFixed(1)}Jt';
     } else if (amount >= 1000) {
-      return 'Rp ${(amount / 1000).toStringAsFixed(0)}K';
+      // 1 ribu = 1 Rb
+      return 'Rp ${(amount / 1000).toStringAsFixed(0)}Rb';
     }
     return currency(amount);
   }

@@ -15,7 +15,8 @@ import 'screens/edit_transaction/edit_transaction_screen.dart';
 import 'screens/add_dividend/add_dividend_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/about/about_screen.dart';
-import 'widgets/main_shell.dart';
+import 'screens/backup_restore/backup_restore_screen.dart';
+import 'screens/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +57,7 @@ class DivVestApp extends StatelessWidget {
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
             theme: themeProvider.isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
-            home: const MainShell(),
+            home: const SplashScreen(),
             onGenerateRoute: (settings) {
               switch (settings.name) {
                 case AppRoutes.addTransaction:
@@ -70,6 +71,8 @@ class DivVestApp extends StatelessWidget {
                   return MaterialPageRoute(builder: (_) => const SettingsScreen());
                 case AppRoutes.about:
                   return MaterialPageRoute(builder: (_) => const AboutScreen());
+                case AppRoutes.backupRestore:
+                  return MaterialPageRoute(builder: (_) => const BackupRestoreScreen());
                 default:
                   if (settings.name?.startsWith(AppRoutes.stockDetail) ?? false) {
                     final uri = Uri.parse(settings.name!);

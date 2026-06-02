@@ -27,7 +27,19 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   List<DividendRecord> _dividends = [];
   List<Map<String, dynamic>> _priceHistory = [];
   bool _isLoading = true;
-  String _selectedRange = '3mo';
+  // API range values (e.g., '1mo', '3mo', '6mo', '1y', etc.)
+  String _selectedRange = '1mo'; // default to 1 month
+  // Mapping from API range to short display label
+  static const Map<String, String> _rangeDisplayMap = {
+    '1d': '1d',
+    '1w': '1w',
+    '1mo': '1m',
+    '3mo': '3m',
+    '6mo': '6m',
+    '1y': '1y',
+    '3y': '3y',
+    '5y': '5y',
+  };
 
   @override
   void initState() {
@@ -321,13 +333,22 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
                   ),
                 ),
-                Row(
-                  children: [
-                    _buildRangeButton('1mo', isDark),
-                    _buildRangeButton('3mo', isDark),
-                    _buildRangeButton('6mo', isDark),
-                    _buildRangeButton('1y', isDark),
-                  ],
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildRangeButton('1d', isDark),
+                        _buildRangeButton('1w', isDark),
+                        _buildRangeButton('1mo', isDark),
+                        _buildRangeButton('3mo', isDark),
+                        _buildRangeButton('6mo', isDark),
+                        _buildRangeButton('1y', isDark),
+                        _buildRangeButton('3y', isDark),
+                        _buildRangeButton('5y', isDark),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -432,10 +453,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     );
   }
 
-  Widget _buildRangeButton(String range, bool isDark) {
-    final isSelected = range == _selectedRange;
+  Widget _buildRangeButton(String apiRange, bool isDark) {
+    final isSelected = apiRange == _selectedRange;
+    final displayLabel = _rangeDisplayMap[apiRange] ?? apiRange;
     return GestureDetector(
-      onTap: () => _changeRange(range),
+      onTap: () => _changeRange(apiRange),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         margin: const EdgeInsets.only(left: 4),
@@ -444,7 +466,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
-          range,
+          displayLabel,
           style: AppTypography.labelMedium.copyWith(
             color: isSelected ? Colors.white : (isDark ? AppColors.textSecondary : AppColors.lightTextSecondary),
           ),

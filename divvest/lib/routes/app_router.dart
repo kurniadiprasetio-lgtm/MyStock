@@ -9,6 +9,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String about = '/about';
   static const String stockDetail = '/stock-detail';
+  static const String backupRestore = '/backup-restore';
 }
 
 class AppRouter {

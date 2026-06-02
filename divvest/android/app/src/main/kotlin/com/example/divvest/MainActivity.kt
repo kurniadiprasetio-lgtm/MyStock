@@ -1,4 +1,4 @@
-package com.example.divvest
+package com.panin.mystock
 
 import io.flutter.embedding.android.FlutterActivity
 

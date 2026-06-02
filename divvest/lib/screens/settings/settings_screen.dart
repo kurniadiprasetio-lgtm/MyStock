@@ -70,6 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Backup & Restore',
                 subtitle: 'Local file backup',
                 isDark: isDark,
+                onTap: () => AppRouter.push(context, AppRoutes.backupRestore),
               ),
               _buildSettingsItem(
                 icon: Icons.sync_outlined,
