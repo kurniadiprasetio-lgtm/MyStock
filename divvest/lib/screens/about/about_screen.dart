@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/components/components.dart';
 
@@ -40,11 +42,6 @@ class AboutScreen extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.accent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -54,14 +51,13 @@ class AboutScreen extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Center(
-              child: Text(
-                'DV',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset(
+                'assets/icon/app_icon.png',
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -96,7 +92,7 @@ class AboutScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: AppCard(
         child: Text(
-          'DivVest adalah aplikasi mobile untuk tracking portofolio saham Indonesia dengan fokus pada dividend investing & reinvestment (DRIP). Aplikasi ini membantu investor dividen untuk memantau Break Even Point (BEP), Yield on Cost, dan proyeksi passive income dari dividen yang diterima.',
+          'DivVest is a mobile application for tracking the Indonesian stock portfolio with a focus on dividend investing & reinvestment (DRIP). This application helps dividend investors to monitor Break Even Point (BEP), Yield on Cost, and projected passive income from received dividends.',
           style: AppTypography.bodyMedium.copyWith(
             color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
           ),
@@ -120,12 +116,12 @@ class AboutScreen extends StatelessWidget {
 
   Widget _buildFeatureList(bool isDark) {
     final features = [
-      (Icons.account_balance_wallet_outlined, 'Portfolio Management', 'Input pembelian saham, tracking lot, averaging price'),
-      (Icons.payments_outlined, 'Dividend Tracking', 'Catat dividen cash out & reinvested (DRIP)'),
-      (Icons.speed_outlined, 'BEP Progress', 'Monitor break-even point via dividen'),
-      (Icons.calendar_month_outlined, 'Dividend Calendar', 'Jadwal ex-date & payment date per bulan'),
-      (Icons.autorenew_outlined, 'Auto Reinvestment', 'Otomatis buat entry baru dari dividen'),
-      (Icons.show_chart_outlined, 'Price History', 'Chart harga real-time dari Yahoo Finance'),
+      (Platform.isIOS ? CupertinoIcons.creditcard : Icons.account_balance_wallet_outlined, 'Portfolio Management', 'Input stock purchase, tracking lots, averaging price'),
+      (Platform.isIOS ? CupertinoIcons.money_dollar : Icons.payments_outlined, 'Dividend Tracking', 'Record cash out & reinvested dividends (DRIP)'),
+      (Platform.isIOS ? CupertinoIcons.speedometer : Icons.speed_outlined, 'BEP Progress', 'Monitor break-even point via dividends'),
+      (Platform.isIOS ? CupertinoIcons.calendar : Icons.calendar_month_outlined, 'Dividend Calendar', 'Ex-date & payment date schedules per month'),
+      (Platform.isIOS ? CupertinoIcons.arrow_2_squarepath : Icons.autorenew_outlined, 'Auto Reinvestment', 'Automatically create new entry from dividend'),
+      (Platform.isIOS ? CupertinoIcons.chart_bar : Icons.show_chart_outlined, 'Price History', 'Real-time price chart from Yahoo Finance'),
     ];
 
     return ListView.builder(
@@ -189,10 +185,10 @@ class AboutScreen extends StatelessWidget {
       child: AppCard(
         child: Column(
           children: [
-            const Icon(Icons.info_outline, size: 24, color: AppColors.warning),
+            Icon(Platform.isIOS ? CupertinoIcons.info : Icons.info_outline, size: 24, color: AppColors.warning),
             const SizedBox(height: 12),
             Text(
-              'Data harga saham bersumber dari Yahoo Finance dan mungkin tidak real-time. Aplikasi ini tidak menyediakan saran investasi. Semua keputusan investasi adalah tanggung jawab pengguna.',
+              'Stock price data is sourced from Yahoo Finance and may not be real-time. This application does not provide investment advice. All investment decisions are the user\'s responsibility.',
               style: AppTypography.bodySmall.copyWith(
                 color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
               ),

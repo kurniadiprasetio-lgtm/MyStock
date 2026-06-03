@@ -26,6 +26,7 @@ void main() async {
 
   final provider = PortfolioProvider();
   await provider.refreshOwnedPrices();
+  await provider.syncAllDividends();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

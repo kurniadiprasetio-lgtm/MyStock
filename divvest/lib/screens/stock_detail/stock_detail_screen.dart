@@ -1,5 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart' hide Badge;
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
+
+
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format_utils.dart';
@@ -116,7 +120,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
       title: 'Detail',
       actions: [
         AppIconButton(
-          icon: Icons.edit_outlined,
+          icon: Platform.isIOS ? CupertinoIcons.pencil : Icons.edit_outlined,
           onPressed: _entries.isNotEmpty
               ? () => AppRouter.push(
                     context,
@@ -127,7 +131,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         ),
         const SizedBox(width: 8),
         AppIconButton(
-          icon: Icons.delete_outline,
+          icon: Platform.isIOS ? CupertinoIcons.trash : Icons.delete_outline,
           onPressed: _entries.isNotEmpty ? () => _showDeleteDialog(context) : null,
           backgroundColor: const Color.fromRGBO(239, 68, 68, 0.1),
           borderColor: const Color.fromRGBO(239, 68, 68, 0.3),
@@ -243,7 +247,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Terakhir diperbarui: ${FormatUtils.date(summary.stock.lastUpdated, format: "HH:mm")} WIB',
+            'Last updated: ${FormatUtils.date(summary.stock.lastUpdated, format: "HH:mm")}',
             style: AppTypography.labelSmall.copyWith(
               color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
             ),
@@ -654,7 +658,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     ],
                   ),
                   Icon(
-                    Icons.chevron_right,
+                    Platform.isIOS ? CupertinoIcons.chevron_right : Icons.chevron_right,
                     color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
                     size: 20,
                   ),

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../core/theme/app_theme.dart';
 import 'app_icon_button.dart';
 
@@ -40,7 +42,7 @@ class AppScaffold extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(right: 12),
                       child: AppIconButton(
-                        icon: Icons.arrow_back_ios_new,
+                        icon: Platform.isIOS ? CupertinoIcons.chevron_left : Icons.arrow_back_ios_new,
                         onPressed: onBackPressed ?? () => Navigator.pop(context),
                       ),
                     ),

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
@@ -70,7 +71,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         if (mounted) {
           AppSnackBar.showError(
             context,
-            'Tidak dapat membagikan backup secara langsung. Temukan file di ${backupFile.path}',
+            'Cannot share backup directly. Find the file at ${backupFile.path}',
           );
         }
       }
@@ -80,7 +81,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       debugPrint('Backup export failed: $e\n$stack');
       if (mounted) {
         // Show a user‑friendly message without technical details
-        AppSnackBar.showError(context, 'Gagal membuat backup. Silakan coba lagi.');
+        AppSnackBar.showError(context, 'Failed to create backup. Please try again.');
       }
     }
   }
@@ -233,8 +234,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 color: AppColors.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.security_outlined,
+              child: Icon(
+                Platform.isIOS ? CupertinoIcons.shield : Icons.security_outlined,
                 color: AppColors.primary,
                 size: 24,
               ),
@@ -245,14 +246,14 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Amankan Data Anda',
+                    'Secure Your Data',
                     style: AppTypography.titleSmall.copyWith(
                       color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Ekspor data portofolio ke file JSON umum atau pulihkan file backup kapan saja.',
+                    'Export portfolio data to a generic JSON file or restore a backup file anytime.',
                     style: AppTypography.bodySmall.copyWith(
                       color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
                     ),
@@ -277,7 +278,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             Row(
               children: [
                 Icon(
-                  Icons.cloud_upload_outlined,
+                  Platform.isIOS ? CupertinoIcons.cloud_upload : Icons.cloud_upload_outlined,
                   size: 24,
                   color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
                 ),
@@ -292,16 +293,16 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Cadangkan seluruh data portofolio, transaksi, dan riwayat dividen Anda ke dalam satu file JSON. File ini dapat dibagikan langsung via WhatsApp, email, Google Drive, atau disalin ke komputer untuk diedit.',
+              'Backup all your portfolio data, transactions, and dividend history into a single JSON file. This file can be shared directly via WhatsApp, email, Google Drive, or copied to your computer to be edited.',
               style: AppTypography.bodyMedium.copyWith(
                 color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
               ),
             ),
             const SizedBox(height: 20),
             AppButton(
-              label: 'Ekspor & Bagikan File Backup',
+              label: 'Export & Share Backup File',
               onPressed: _exportBackup,
-              icon: const Icon(Icons.share_outlined, size: 18, color: Colors.white),
+              icon: Icon(Platform.isIOS ? CupertinoIcons.share : Icons.share_outlined, size: 18, color: Colors.white),
             ),
           ],
         ),
@@ -320,7 +321,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             Row(
               children: [
                 Icon(
-                  Icons.settings_backup_restore_outlined,
+                  Platform.isIOS ? CupertinoIcons.arrow_counterclockwise : Icons.settings_backup_restore_outlined,
                   size: 24,
                   color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
                 ),
@@ -335,18 +336,18 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Pilih file backup (.json) dari perangkat Anda untuk memulihkan seluruh data portofolio. Seluruh data transaksi yang ada di aplikasi saat ini akan ditimpa dengan data dari file backup.',
+              'Select a backup file (.json) from your device to restore all portfolio data. All current transaction data in the app will be overwritten with the data from the backup file.',
               style: AppTypography.bodyMedium.copyWith(
                 color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
               ),
             ),
             const SizedBox(height: 20),
             AppButton(
-              label: 'Pilih & Pulihkan Backup',
+              label: 'Select & Restore Backup',
               onPressed: _importRestore,
               type: AppButtonType.secondary,
               icon: Icon(
-                Icons.folder_open_outlined,
+                Platform.isIOS ? CupertinoIcons.folder : Icons.folder_open_outlined,
                 size: 18,
                 color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
               ),

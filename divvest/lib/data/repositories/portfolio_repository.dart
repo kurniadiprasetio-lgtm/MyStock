@@ -131,6 +131,98 @@ class PortfolioRepository {
     debugPrint('[deleteAllForTicker] Deleted all data for $ticker');
   }
 
+  // Calculate lots held for a ticker at a specific date
+  Future<int> getLotsHeldAtDate(String ticker, DateTime exDate) async {
+    final entries = await _portfolioDAO.getByTicker(ticker);
+    int totalLots = 0;
+    final exDateOnly = DateTime(exDate.year, exDate.month, exDate.day);
+    
+    debugPrint('[getLotsHeldAtDate] $ticker at ${exDateOnly.toIso8601String()}, entries: ${entries.length}');
+    
+    for (final entry in entries) {
+      final buyDateOnly = DateTime(entry.buyDate.year, entry.buyDate.month, entry.buyDate.day);
+      final isOnOrBefore = buyDateOnly.isBefore(exDateOnly) || buyDateOnly.isAtSameMomentAs(exDateOnly);
+      
+      debugPrint('[getLotsHeldAtDate] Entry: buyDate=$buyDateOnly, lots=${entry.lots}, isOnOrBefore=$isOnOrBefore');
+      
+      if (isOnOrBefore) {
+        totalLots += entry.lots;
+        debugPrint('[getLotsHeldAtDate] Counted: $totalLots lots');
+      }
+    }
+    
+    debugPrint('[getLotsHeldAtDate] Final lots for $ticker at ${exDateOnly.toIso8601String()}: $totalLots');
+    return totalLots;
+  }
+
+  // Update lotsHeldAtExDate for a dividend record by ticker and exDate
+  Future<void> updateLotsHeldAtExDate(String ticker, DateTime exDate, int lotsHeld) async {
+    await _dividendDAO.updateByTickerAndExDate(ticker, exDate, {
+      'lotsHeldAtExDate': lotsHeld,
+    });
+  }
+
+  // Get current lots held for a ticker (all entries)
+  Future<int> getCurrentLots(String ticker) async {
+    final entries = await _portfolioDAO.getByTicker(ticker);
+    return entries.fold<int>(0, (sum, e) => sum + e.lots);
+  }
+
+  // Sync dividends for a specific ticker from Yahoo Finance
+  Future<void> syncDividendsForTicker(String ticker) async {
+    final dividends = await YahooFinanceApi.fetchDividends(ticker);
+    if (dividends == null) {
+      debugPrint('[syncDividendsForTicker] No dividends fetched for $ticker');
+      return;
+    }
+    debugPrint('[syncDividendsForTicker] Fetched ${dividends.length} dividends for $ticker from Yahoo');
+    
+    int inserted = 0;
+    int updated = 0;
+    int skipped = 0;
+    
+    for (final record in dividends) {
+      try {
+        final lotsHeld = await getLotsHeldAtDate(ticker, record.exDate);
+        final recordWithLots = record.copyWith(lotsHeldAtExDate: lotsHeld, taxRate: 0.10);
+        
+        final existing = await _dividendDAO.getByTickerAndDate(ticker, record.exDate);
+        if (existing != null) {
+          await _dividendDAO.update(recordWithLots.copyWith(id: existing.id));
+          updated++;
+          debugPrint('[syncDividendsForTicker] Updated $ticker on ${record.exDate}: lots=$lotsHeld, dps=${record.dividendPerLot}');
+        } else {
+          await _dividendDAO.insert(recordWithLots);
+          inserted++;
+          debugPrint('[syncDividendsForTicker] Inserted $ticker on ${record.exDate}: lots=$lotsHeld, dps=${record.dividendPerLot}');
+        }
+      } catch (e) {
+        debugPrint('[syncDividendsForTicker] Error processing $ticker on ${record.exDate}: $e');
+        skipped++;
+      }
+    }
+    debugPrint('[syncDividendsForTicker] Done: $inserted inserted, $updated updated, $skipped skipped for $ticker');
+  }
+
+  // Sync dividends for all tickers in the user's portfolio
+  Future<void> syncAllDividends() async {
+    final entries = await _portfolioDAO.getAll();
+    final tickers = entries.map((e) => e.ticker).toSet().toList();
+    
+    if (tickers.isEmpty) {
+      debugPrint('[syncAllDividends] No portfolio entries found, skipping sync');
+      return;
+    }
+    
+    debugPrint('[syncAllDividends] Syncing dividends for ${tickers.length} tickers: $tickers');
+    
+    for (final ticker in tickers) {
+      await syncDividendsForTicker(ticker);
+    }
+    debugPrint('[syncAllDividends] Completed syncing dividends for ${tickers.length} tickers');
+  }
+  
+
   Future<DividendRecord> addDividend(DividendRecord record) async {
     final id = await _dividendDAO.insert(record);
     return record.copyWith(id: id);
@@ -157,9 +249,13 @@ class PortfolioRepository {
     final totalInvested = entries.fold<double>(0, (sum, e) => sum + e.totalCost);
     final averagePrice = totalLots > 0 ? (totalInvested / (totalLots * 100)).toDouble() : 0.0;
     final currentValue = (totalLots * 100 * stock.currentPrice).toDouble();
-    final dividendsReceived = dividends.fold<double>(0, (sum, d) => sum + d.netAmount);
+    
+    final earliestBuyDate = entries.isEmpty ? DateTime.now() : entries.map((e) => e.buyDate).reduce((a, b) => a.isBefore(b) ? a : b);
+    final dividendsReceived = dividends
+        .where((d) => !d.exDate.isBefore(earliestBuyDate))
+        .fold<double>(0, (sum, d) => sum + d.netAmount);
 
-    debugPrint('[getStockSummary] $ticker: currentPrice=${stock.currentPrice}, avgPrice=$averagePrice, lots=$totalLots, currentValue=$currentValue, invested=$totalInvested');
+    debugPrint('[getStockSummary] $ticker: earliestBuy=$earliestBuyDate, totalDivs=${dividends.length}, validDivs=${dividends.where((d) => !d.exDate.isBefore(earliestBuyDate)).length}, dividendsReceived=$dividendsReceived');
 
     final totalDividendCoverage = dividendsReceived;
     final bepProgress = totalInvested > 0
@@ -243,6 +339,34 @@ class PortfolioRepository {
     final allDividends = await getDividends();
     final annualDividends = allDividends
         .where((d) => d.exDate.year == DateTime.now().year)
+        .fold<double>(0, (sum, d) => sum + d.netAmount);
+
+    return (annualDividends / summary.totalInvested) * 100;
+  }
+
+  Future<double> getLastMonthIncome() async {
+    final now = DateTime.now();
+    var lastMonth = now.month - 1;
+    var year = now.year;
+    if (lastMonth == 0) {
+      lastMonth = 12;
+      year -= 1;
+    }
+
+    final allDividends = await getDividends();
+    return allDividends
+        .where((d) => d.exDate.month == lastMonth && d.exDate.year == year)
+        .fold<double>(0, (sum, d) => sum + d.netAmount);
+  }
+
+  Future<double> getLastYearYieldOnCost() async {
+    final summary = await getPortfolioSummary();
+    if (summary.totalInvested == 0) return 0;
+
+    final allDividends = await getDividends();
+    final lastYear = DateTime.now().year - 1;
+    final annualDividends = allDividends
+        .where((d) => d.exDate.year == lastYear)
         .fold<double>(0, (sum, d) => sum + d.netAmount);
 
     return (annualDividends / summary.totalInvested) * 100;

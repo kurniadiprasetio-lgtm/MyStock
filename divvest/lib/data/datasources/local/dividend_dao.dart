@@ -33,6 +33,22 @@ class DividendDAO {
     });
   }
 
+  Future<DividendRecord?> getByTickerAndDate(String ticker, DateTime exDate) async {
+    final db = await DatabaseHelper.instance.database;
+    final dateStr = exDate.toIso8601String();
+    final maps = await db.query(
+      'dividend_records',
+      where: 'ticker = ? AND exDate = ?',
+      whereArgs: [ticker, dateStr],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      return DividendRecord.fromMap(maps.first);
+    }
+    return null;
+  }
+
   Future<List<DividendRecord>> getByTicker(String ticker) async {
     final db = await DatabaseHelper.instance.database;
     final maps = await db.query(
@@ -77,6 +93,16 @@ class DividendDAO {
     return List.generate(maps.length, (i) {
       return DividendRecord.fromMap(maps[i]);
     });
+  }
+
+  Future<int> updateByTickerAndExDate(String ticker, DateTime exDate, Map<String, dynamic> values) async {
+    final db = await DatabaseHelper.instance.database;
+    return await db.update(
+      'dividend_records',
+      values,
+      where: 'ticker = ? AND exDate = ?',
+      whereArgs: [ticker, exDate.toIso8601String()],
+    );
   }
 
   Future<int> update(DividendRecord record) async {

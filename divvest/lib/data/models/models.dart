@@ -170,7 +170,7 @@ class DividendRecord {
     this.reinvestEntryId,
   });
 
-  double get grossAmount => lotsHeldAtExDate * 100 * dividendPerLot;
+  double get grossAmount => lotsHeldAtExDate * dividendPerLot * 100;
   double get tax => grossAmount * taxRate;
   double get netAmount => grossAmount - tax;
 

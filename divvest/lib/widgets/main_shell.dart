@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/portfolio/portfolio_screen.dart';
 import '../screens/calendar/calendar_screen.dart';
@@ -68,25 +70,25 @@ class _MainShellState extends State<MainShell> {
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined, size: 24),
-              activeIcon: Icon(Icons.home, size: 24),
+              icon: Icon(Platform.isIOS ? CupertinoIcons.home : Icons.home_outlined, size: 24),
+              activeIcon: Icon(Platform.isIOS ? CupertinoIcons.house_fill : Icons.home, size: 24),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.folder_outlined, size: 24),
-              activeIcon: Icon(Icons.folder, size: 24),
+              icon: Icon(Platform.isIOS ? CupertinoIcons.folder : Icons.folder_outlined, size: 24),
+              activeIcon: Icon(Platform.isIOS ? CupertinoIcons.folder_fill : Icons.folder, size: 24),
               label: 'Portfolio',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined, size: 24),
-              activeIcon: Icon(Icons.calendar_today, size: 24),
+              icon: Icon(Platform.isIOS ? CupertinoIcons.calendar : Icons.calendar_today_outlined, size: 24),
+              activeIcon: Icon(Platform.isIOS ? CupertinoIcons.calendar : Icons.calendar_today, size: 24),
               label: 'Calendar',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined, size: 24),
-              activeIcon: Icon(Icons.settings, size: 24),
+              icon: Icon(Platform.isIOS ? CupertinoIcons.settings : Icons.settings_outlined, size: 24),
+              activeIcon: Icon(Platform.isIOS ? CupertinoIcons.settings_solid : Icons.settings, size: 24),
               label: 'Settings',
             ),
           ],

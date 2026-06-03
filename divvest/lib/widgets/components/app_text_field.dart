@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -125,7 +127,7 @@ class AppCurrencyField extends StatelessWidget {
   }
 }
 
-class AppDateField extends StatelessWidget {
+class AppDateField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final DateTime? initialDate;
@@ -134,7 +136,7 @@ class AppDateField extends StatelessWidget {
   final ValueChanged<DateTime>? onDateSelected;
   final VoidCallback? onChanged;
 
-  const AppDateField({
+  AppDateField({
     super.key,
     required this.label,
     required this.controller,
@@ -145,34 +147,118 @@ class AppDateField extends StatelessWidget {
     this.onChanged,
   });
 
-  Future<void> _pickDate(BuildContext context) async {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+  @override
+  State<AppDateField> createState() => _AppDateFieldState();
+}
 
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate ?? DateTime.now(),
-      firstDate: firstDate ?? DateTime(2000),
-      lastDate: lastDate ?? DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: theme.copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: isDark ? AppColors.backgroundSecondary : Colors.white,
-              onSurface: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
+class _AppDateFieldState extends State<AppDateField> {
+  DateTime _tempDate = DateTime.now();
+
+  bool _isDark(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    DateTime? picked;
+
+    if (Platform.isIOS) {
+      _tempDate = widget.initialDate ?? DateTime.now();
+      picked = await showCupertinoModalPopup<DateTime>(
+        context: context,
+        builder: (context) {
+          return Container(
+            height: 300,
+            color: _isDark(context) ? AppColors.backgroundSecondary : Colors.white,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: _isDark(context) ? AppColors.inputBorder : AppColors.lightInputBorder,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, _tempDate),
+                        child: Text(
+                          'Done',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoDatePicker(
+                    initialDateTime: widget.initialDate ?? DateTime.now(),
+                    minimumDate: widget.firstDate ?? DateTime(2000),
+                    maximumDate: widget.lastDate ?? DateTime(2100),
+                    onDateTimeChanged: (date) => setState(() => _tempDate = date),
+                    backgroundColor: _isDark(context) ? AppColors.backgroundSecondary : Colors.white,
+                  ),
+                ),
+              ],
             ),
-          ),
-          child: child!,
-        );
-      },
-    );
+          );
+        },
+      );
+    } else {
+      final theme = Theme.of(context);
+      final isDarkMode = theme.brightness == Brightness.dark;
+
+      picked = await showDatePicker(
+        context: context,
+        initialDate: widget.initialDate ?? DateTime.now(),
+        firstDate: widget.firstDate ?? DateTime(2000),
+        lastDate: widget.lastDate ?? DateTime(2100),
+        builder: (context, child) {
+          return Theme(
+            data: theme.copyWith(
+              colorScheme: isDarkMode
+                  ? ColorScheme.dark(
+                      primary: AppColors.primary,
+                      onPrimary: Colors.white,
+                      surface: AppColors.backgroundSecondary,
+                      onSurface: AppColors.textPrimary,
+                      onSurfaceVariant: AppColors.textSecondary,
+                    )
+                  : ColorScheme.light(
+                      primary: AppColors.primary,
+                      onPrimary: Colors.white,
+                      surface: Colors.white,
+                      onSurface: AppColors.lightTextPrimary,
+                      onSurfaceVariant: AppColors.lightTextSecondary,
+                    ),
+            ),
+            child: child!,
+          );
+        },
+      );
+    }
 
     if (picked != null) {
-      controller.text = _formatDate(picked);
-      onDateSelected?.call(picked);
-      onChanged?.call();
+      widget.controller.text = _formatDate(picked);
+      widget.onDateSelected?.call(picked);
+      widget.onChanged?.call();
     }
   }
 
@@ -180,27 +266,27 @@ class AppDateField extends StatelessWidget {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AppTextField(
-      label: label,
-      controller: controller,
-      readOnly: true,
-      hintText: 'DD/MM/YYYY',
-      suffixIcon: Icon(
-        Icons.calendar_today_outlined,
-        size: 20,
-        color: _getTextSecondaryColor(context),
-      ),
-      onTap: () => _pickDate(context),
-    );
-  }
-
   Color _getTextSecondaryColor(BuildContext context) {
     final theme = Theme.of(context);
     return theme.brightness == Brightness.dark
         ? AppColors.textSecondary
         : AppColors.lightTextSecondary;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextField(
+      label: widget.label,
+      controller: widget.controller,
+      readOnly: true,
+      hintText: 'DD/MM/YYYY',
+      suffixIcon: Icon(
+        Platform.isIOS ? CupertinoIcons.calendar : Icons.calendar_today_outlined,
+        size: 20,
+        color: _getTextSecondaryColor(context),
+      ),
+      onTap: () => _pickDate(context),
+    );
   }
 }
 

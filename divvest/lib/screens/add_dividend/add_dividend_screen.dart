@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format_utils.dart';
 import '../../data/models/models.dart';
+import '../../data/repositories/portfolio_repository.dart';
 import '../../providers/portfolio_provider.dart';
 import '../../widgets/components/components.dart';
+import '../../widgets/dividend_card.dart';
 
 class AddDividendScreen extends StatefulWidget {
   const AddDividendScreen({super.key});
@@ -14,100 +18,93 @@ class AddDividendScreen extends StatefulWidget {
 }
 
 class _AddDividendScreenState extends State<AddDividendScreen> {
-  String? _selectedTicker;
-  List<Stock> _stocks = [];
-  List<Stock> _filteredStocks = [];
-  DateTime _exDate = DateTime.now();
-  DateTime _paymentDate = DateTime.now().add(const Duration(days: 14));
-  final _netAmountController = TextEditingController();
+  List<DividendRecord> _dividends = [];
+  DividendRecord? _selectedDividend;
   final _reinvestPriceController = TextEditingController();
-  final _stockSearchController = TextEditingController();
-  final _stockFocusNode = FocusNode();
-  final _stockOverlayLink = LayerLink();
   bool _isLoading = false;
-  bool _showStockDropdown = false;
+  final _repository = PortfolioRepository();
 
-  double get netAmount => double.tryParse(_netAmountController.text) ?? 0;
+  int get _lotsHeld => _selectedDividend?.lotsHeldAtExDate ?? 0;
 
-  int get reinvestLots {
+  double get _dividendPerLot => _selectedDividend?.dividendPerLot ?? 0;
+
+  double get _netAmount => _lotsHeld * _dividendPerLot * 100;
+
+  int get _reinvestLots {
     final price = double.tryParse(_reinvestPriceController.text) ?? 0;
     if (price <= 0) return 0;
-    return (netAmount ~/ (price * 100)).toInt();
+    return (_netAmount ~/ (price * 100)).toInt();
   }
 
-  double get reinvestRemainder {
+  double get _reinvestRemainder {
     final price = double.tryParse(_reinvestPriceController.text) ?? 0;
     if (price <= 0) return 0;
-    return netAmount % (price * 100);
+    return _netAmount % (price * 100);
   }
 
   @override
   void initState() {
     super.initState();
-    _stockFocusNode.addListener(_onStockFocusChange);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadStocks());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDividends());
   }
 
-  void _onStockFocusChange() {
-    if (!_stockFocusNode.hasFocus) {
-      setState(() => _showStockDropdown = false);
-    }
-  }
+  Future<void> _loadDividends() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
 
-  void _filterStocks(String query) {
-    final q = query.toUpperCase();
-    setState(() {
-      if (q.isEmpty) {
-        _filteredStocks = _stocks;
-        _showStockDropdown = _stocks.isNotEmpty;
-      } else {
-        _filteredStocks = _stocks.where((s) {
-          return s.ticker.toUpperCase().contains(q) ||
-              s.name.toUpperCase().contains(q);
-        }).toList();
-        _showStockDropdown = _filteredStocks.isNotEmpty;
-      }
-
-      final exactMatch = _filteredStocks.where((s) => s.ticker.toUpperCase() == q).toList();
-      if (exactMatch.length == 1) {
-        _selectedTicker = exactMatch.first.ticker;
-      }
-    });
-  }
-
-  void _selectStock(Stock stock) {
-    setState(() {
-      _selectedTicker = stock.ticker;
-      _stockSearchController.text = '${stock.ticker} - ${stock.name}';
-      _showStockDropdown = false;
-      _stockFocusNode.unfocus();
-    });
-  }
-
-  Future<void> _loadStocks() async {
     final provider = context.read<PortfolioProvider>();
-    await provider.loadPortfolio();
-    final stocks = await provider.getAllStocks();
+    final allDividends = await provider.getAllDividends();
+    final now = DateTime.now();
+    
+    final pastDividends = allDividends
+        .where((d) => d.exDate.isBefore(now))
+        .toList();
+    
+    pastDividends.sort((a, b) => b.exDate.compareTo(a.exDate));
+
+    final enriched = <DividendRecord>[];
+    for (final d in pastDividends) {
+      if (d.lotsHeldAtExDate == 0) {
+        final currentLots = await _repository.getLotsHeldAtDate(d.ticker, d.exDate);
+        if (currentLots > 0) {
+          enriched.add(d.copyWith(lotsHeldAtExDate: currentLots));
+        } else {
+          enriched.add(d);
+        }
+      } else {
+        enriched.add(d);
+      }
+    }
+
     if (mounted) {
       setState(() {
-        _stocks = stocks;
-        _filteredStocks = stocks;
-        if (_stocks.isNotEmpty) {
-          _selectedTicker = _stocks.first.ticker;
-          _stockSearchController.text = '${_stocks.first.ticker} - ${_stocks.first.name}';
-        }
+        _dividends = enriched;
+        _isLoading = false;
       });
     }
   }
 
+  Future<void> _selectDividend(DividendRecord dividend) async {
+    if (dividend.lotsHeldAtExDate == 0) {
+      final currentLots = await _repository.getLotsHeldAtDate(dividend.ticker, dividend.exDate);
+      if (currentLots > 0) {
+        dividend = dividend.copyWith(lotsHeldAtExDate: currentLots);
+      }
+    }
+
+    setState(() {
+      _selectedDividend = dividend;
+    });
+  }
+
   Future<void> _save() async {
-    if (_selectedTicker == null) {
-      AppSnackBar.showError(context, 'Please select a stock');
+    if (_selectedDividend == null) {
+      AppSnackBar.showError(context, 'Please select a dividend');
       return;
     }
 
-    if (netAmount <= 0) {
-      AppSnackBar.showError(context, 'Please enter net dividend amount');
+    if (_lotsHeld <= 0) {
+      AppSnackBar.showError(context, 'No lots held for this dividend');
       return;
     }
 
@@ -119,46 +116,36 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
 
     setState(() => _isLoading = true);
 
-    final dps = netAmount / 100;
-    final lots = reinvestLots;
-    debugPrint('[AddDividend] Net: $netAmount, Price: $price, Lots: $lots');
+    final provider = context.read<PortfolioProvider>();
 
-    final record = DividendRecord(
-      ticker: _selectedTicker!,
-      exDate: _exDate,
-      paymentDate: _paymentDate,
-      dividendPerLot: dps,
-      dividendType: DividendType.reinvest,
-      lotsHeldAtExDate: 1,
-      taxRate: 0,
-    );
-
-    await context.read<PortfolioProvider>().addDividend(record);
-
-    final entry = PortfolioEntry(
-      ticker: _selectedTicker!,
-      buyDate: _paymentDate,
-      lots: reinvestLots,
+    final reinvestEntry = PortfolioEntry(
+      ticker: _selectedDividend!.ticker,
+      buyDate: _selectedDividend!.paymentDate,
+      lots: _reinvestLots,
       pricePerLot: price,
       fee: 0,
       isReinvested: true,
-      notes: 'Auto reinvest from dividend',
+      sourceDividendId: _selectedDividend!.id,
+      notes: 'Reinvest from dividend',
     );
-    await context.read<PortfolioProvider>().addEntry(entry);
+    final savedEntry = await provider.addEntry(reinvestEntry);
+
+    await provider.updateDividend(_selectedDividend!.copyWith(
+      dividendType: DividendType.reinvest,
+      reinvestEntryId: savedEntry.id,
+    ));
+
+    debugPrint('[AddDividend] Reinvested $_reinvestLots lots from dividend ${_selectedDividend!.id}, entry=${savedEntry.id}');
 
     if (mounted) {
       setState(() => _isLoading = false);
       Navigator.pop(context);
-      AppSnackBar.showSuccess(context, 'Dividend & reinvestment saved');
+      AppSnackBar.showSuccess(context, 'Reinvestment saved');
     }
   }
 
   @override
   void dispose() {
-    _stockFocusNode.removeListener(_onStockFocusChange);
-    _stockFocusNode.dispose();
-    _stockSearchController.dispose();
-    _netAmountController.dispose();
     _reinvestPriceController.dispose();
     super.dispose();
   }
@@ -169,28 +156,27 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return AppScaffold(
-      title: 'Add Dividend',
+      title: 'Reinvest Dividend',
       body: AppLoadingOverlay(
         isLoading: _isLoading,
         child: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildStockField(isDark),
-                    _buildDates(isDark),
-                    _buildNetAmountField(),
-                    _buildReinvestPriceField(),
-                    _buildCalculationCard(isDark),
-                    const SizedBox(height: 8),
-                    _buildSaveButton(),
-                    const SizedBox(height: 20),
-                  ],
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _buildDividendSelector(isDark),
+                      _buildSelectedDividendInfo(isDark),
+                      _buildReinvestPriceField(),
+                      _buildCalculationCard(isDark),
+                      const SizedBox(height: 80),
+                    ],
+                  ),
                 ),
               ),
-              _buildStockDropdown(isDark),
+              _buildSaveButton(isDark),
             ],
           ),
         ),
@@ -198,31 +184,95 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
     );
   }
 
-  Widget _buildStockField(bool isDark) {
+  Widget _buildDividendSelector(bool isDark) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Stock',
+            'Select Dividend',
             style: AppTypography.labelMedium.copyWith(
               color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: 8),
-          CompositedTransformTarget(
-            link: _stockOverlayLink,
-            child: AppTextField(
-              label: '',
-              controller: _stockSearchController,
-              focusNode: _stockFocusNode,
-              hintText: 'Search stock...',
-              suffixIcon: const Icon(Icons.arrow_drop_down, size: 24),
-              onTap: () {
-                setState(() => _showStockDropdown = true);
-              },
-              onChanged: _filterStocks,
+          if (_dividends.isEmpty)
+            _buildEmptyDividends(isDark)
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _dividends.length,
+                itemBuilder: (context, index) {
+                  final dividend = _dividends[index];
+                  final isSelected = _selectedDividend?.id == dividend.id;
+                  return GestureDetector(
+                    onTap: () => _selectDividend(dividend),
+                    child: Stack(
+                      children: [
+                        DividendCard(dividend: dividend, showNetAmount: true),
+                        if (isSelected)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppColors.primary, width: 2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        if (isSelected)
+                          Positioned(
+                            right: 12,
+                            bottom: 12,
+                            child: Icon(
+                              Platform.isIOS ? CupertinoIcons.checkmark_circle_fill : Icons.check_circle,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyDividends(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.inputBackground : AppColors.lightInputBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.inputBorder : AppColors.lightInputBorder,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Platform.isIOS ? CupertinoIcons.info_circle : Icons.info_outline,
+            size: 40,
+            color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No dividends found',
+            style: AppTypography.bodyMedium.copyWith(
+              color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap sync button in Calendar first',
+            style: AppTypography.bodySmall.copyWith(
+              color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
             ),
           ),
         ],
@@ -230,104 +280,72 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
     );
   }
 
-  Widget _buildStockDropdown(bool isDark) {
-    if (!_showStockDropdown || _filteredStocks.isEmpty) return const SizedBox.shrink();
+  Widget _buildSelectedDividendInfo(bool isDark) {
+    final lotsHeld = _selectedDividend?.lotsHeldAtExDate ?? 0;
+    final dps = _selectedDividend?.dividendPerLot ?? 0;
+    final ticker = _selectedDividend?.ticker ?? '-';
+    final exDate = _selectedDividend != null ? FormatUtils.dateShort(_selectedDividend!.exDate) : '-';
+    final payDate = _selectedDividend != null ? FormatUtils.dateShort(_selectedDividend!.paymentDate) : '-';
+    final gross = lotsHeld > 0 ? (lotsHeld * 100 * dps).toDouble() : 0.0;
 
-    return CompositedTransformFollower(
-      link: _stockOverlayLink,
-      targetAnchor: Alignment.bottomLeft,
-      followerAnchor: Alignment.topLeft,
-      offset: const Offset(0, 4),
-      showWhenUnlinked: false,
-      child: Material(
-        elevation: 8,
-        color: isDark ? AppColors.backgroundSecondary : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          constraints: const BoxConstraints(maxHeight: 240),
-          width: MediaQuery.of(context).size.width - 40,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.inputBackground : AppColors.lightInputBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark ? AppColors.inputBorder : AppColors.lightInputBorder,
-              width: 1,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: AppCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Selected Dividend',
+              style: AppTypography.labelMedium.copyWith(
+                color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+              ),
             ),
-          ),
-          child: ListView.builder(
-            shrinkWrap: true,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: _filteredStocks.length > 5 ? 5 : _filteredStocks.length,
-            itemBuilder: (context, index) {
-              final stock = _filteredStocks[index];
-              final isSelected = stock.ticker == _selectedTicker;
-              return ListTile(
-                dense: true,
-                title: Text(
-                  '${stock.ticker} - ${stock.name}',
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-                    color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
-                  ),
-                ),
-                trailing: isSelected
-                    ? const Icon(Icons.check, color: AppColors.primary)
-                    : null,
-                onTap: () => _selectStock(stock),
-              );
-            },
-          ),
+            const SizedBox(height: 12),
+            _buildInfoRow('Ticker', ticker, isDark),
+            _buildInfoRow('Ex-Date', exDate, isDark),
+            _buildInfoRow('Pay Date', payDate, isDark),
+            _buildInfoRow('Div/Lot', FormatUtils.currency(dps, showSymbol: false), isDark),
+            _buildInfoRow('Lots Held', lotsHeld > 0 ? lotsHeld.toString() : '-', isDark),
+            _buildInfoRow('Net', lotsHeld > 0 ? FormatUtils.currency(gross, showSymbol: false) : '-', isDark, isTotal: true),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildDates(bool isDark) {
+  Widget _buildInfoRow(String label, String value, bool isDark, {bool isTotal = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: AppDateField(
-              label: 'Ex-Date',
-              controller: TextEditingController(text: FormatUtils.date(_exDate)),
-              initialDate: _exDate,
-              onDateSelected: (date) => setState(() => _exDate = date),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+              fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AppDateField(
-              label: 'Payment Date',
-              controller: TextEditingController(text: FormatUtils.date(_paymentDate)),
-              initialDate: _paymentDate,
-              onDateSelected: (date) => setState(() => _paymentDate = date),
+          Text(
+            value,
+            style: AppTypography.bodyMedium.copyWith(
+              color: isTotal ? AppColors.success : (isDark ? AppColors.textPrimary : AppColors.lightTextPrimary),
+              fontWeight: isTotal ? FontWeight.w700 : FontWeight.normal,
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNetAmountField() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-      child: AppCurrencyField(
-        label: 'Net Dividend Received (IDR)',
-        controller: _netAmountController,
-        hintText: 'e.g., 813600',
-        onChanged: (_) => setState(() {}),
       ),
     );
   }
 
   Widget _buildReinvestPriceField() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
       child: AppCurrencyField(
         label: 'Reinvest Price per Lot (IDR)',
         controller: _reinvestPriceController,
-        hintText: 'e.g., 5700',
+        hintText: 'e.g., 10250',
         onChanged: (_) => setState(() {}),
       ),
     );
@@ -340,14 +358,14 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildCalcRow('Net Dividend', FormatUtils.currency(netAmount), isDark, isTotal: true, valueColor: AppColors.success),
+            _buildCalcRow('Net Dividend', FormatUtils.currency(_netAmount), isDark, isTotal: true, valueColor: AppColors.success),
             const SizedBox(height: 14),
             Container(height: 1, color: isDark ? const Color.fromRGBO(255, 255, 255, 0.08) : AppColors.lightCardBorder),
             const SizedBox(height: 14),
-            Text('Auto Reinvest', style: TextStyle(fontSize: 12, color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary)),
+            Text('Reinvest Lots', style: TextStyle(fontSize: 12, color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary)),
             const SizedBox(height: 6),
             Text(
-              '$reinvestLots lot${reinvestLots != 1 ? 's' : ''} (sisa: ${FormatUtils.currency(reinvestRemainder, showSymbol: false)})',
+              '$_reinvestLots lot${_reinvestLots != 1 ? 's' : ''} (rem: ${FormatUtils.currency(_reinvestRemainder, showSymbol: false)})',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: isDark ? AppColors.primaryLight : AppColors.primary),
             ),
           ],
@@ -366,11 +384,21 @@ class _AddDividendScreenState extends State<AddDividendScreen> {
     );
   }
 
-  Widget _buildSaveButton() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+  Widget _buildSaveButton(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.backgroundSecondary : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
       child: AppButton(
-        label: 'Save Dividend & Reinvest',
+        label: 'Save Reinvestment',
         onPressed: _save,
       ),
     );

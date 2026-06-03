@@ -9,12 +9,16 @@ class PortfolioProvider extends ChangeNotifier {
   PortfolioSummary? _portfolioSummary;
   double _monthlyIncome = 0;
   double _yieldOnCost = 0;
+  double _monthlyIncomeChange = 0;
+  double _yieldOnCostChange = 0;
   bool _isLoading = false;
 
   List<StockSummary> get stockSummaries => _stockSummaries;
   PortfolioSummary? get portfolioSummary => _portfolioSummary;
   double get monthlyIncome => _monthlyIncome;
   double get yieldOnCost => _yieldOnCost;
+  double get monthlyIncomeChange => _monthlyIncomeChange;
+  double get yieldOnCostChange => _yieldOnCostChange;
   bool get isLoading => _isLoading;
 
   Future<void> loadPortfolio() async {
@@ -26,6 +30,16 @@ class PortfolioProvider extends ChangeNotifier {
       _portfolioSummary = await _repository.getPortfolioSummary();
       _monthlyIncome = await _repository.getMonthlyIncome();
       _yieldOnCost = await _repository.getYieldOnCost();
+
+      final lastMonthIncome = await _repository.getLastMonthIncome();
+      if (lastMonthIncome == 0) {
+        _monthlyIncomeChange = _monthlyIncome > 0 ? 100.0 : 0.0;
+      } else {
+        _monthlyIncomeChange = ((_monthlyIncome - lastMonthIncome) / lastMonthIncome) * 100;
+      }
+
+      final lastYearYoC = await _repository.getLastYearYieldOnCost();
+      _yieldOnCostChange = _yieldOnCost - lastYearYoC;
     } catch (e) {
       debugPrint('Error loading portfolio: $e');
     }
@@ -46,16 +60,29 @@ class PortfolioProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshOwnedPrices() async {
+  Future<void> syncAllDividends() async {
     _isLoading = true;
     notifyListeners();
-
+    try {
+      await _repository.syncAllDividends();
+      await loadPortfolio();
+    } catch (e) {
+      debugPrint('Error syncing dividends: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+Future<void> refreshOwnedPrices() async {
+    _isLoading = true;
+    notifyListeners();
     try {
       await _repository.refreshOwnedPrices();
       await loadPortfolio();
     } catch (e) {
       debugPrint('Error refreshing owned prices: $e');
     }
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<int> refreshStockList() async {

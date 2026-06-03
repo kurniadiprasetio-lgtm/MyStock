@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format_utils.dart';
@@ -58,14 +60,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
       // Filter stocks by ticker or name
       _filteredStocks = _stocks.where((s) {
-        return s.ticker.toUpperCase().contains(q) || s.name.toUpperCase().contains(q);
+        return s.ticker.toUpperCase().contains(q) ||
+            s.name.toUpperCase().contains(q);
       }).toList();
 
       // If we have matches, show the dropdown
       _showStockDropdown = _filteredStocks.isNotEmpty;
 
       // If there is an exact ticker match, select it automatically
-      final exactMatch = _filteredStocks.where((s) => s.ticker.toUpperCase() == q).toList();
+      final exactMatch =
+          _filteredStocks.where((s) => s.ticker.toUpperCase() == q).toList();
       if (exactMatch.length == 1) {
         _selectedTicker = exactMatch.first.ticker;
         return;
@@ -96,7 +100,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         _filteredStocks = stocks;
         if (_stocks.isNotEmpty && _selectedTicker == null) {
           _selectedTicker = _stocks.first.ticker;
-          _stockSearchController.text = '${_stocks.first.ticker} - ${_stocks.first.name}';
+          _stockSearchController.text =
+              '${_stocks.first.ticker} - ${_stocks.first.name}';
         }
       });
     }
@@ -247,18 +252,25 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               Text(
                 'Stock',
                 style: AppTypography.labelMedium.copyWith(
-                  color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+                  color: isDark
+                      ? AppColors.textSecondary
+                      : AppColors.lightTextSecondary,
                 ),
               ),
               GestureDetector(
                 onTap: _isReloading ? null : _reloadStocks,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.iconButtonBackground : AppColors.lightIconButtonBackground,
+                    color: isDark
+                        ? AppColors.iconButtonBackground
+                        : AppColors.lightIconButtonBackground,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isDark ? AppColors.iconButtonBorder : AppColors.lightIconButtonBorder,
+                      color: isDark
+                          ? AppColors.iconButtonBorder
+                          : AppColors.lightIconButtonBorder,
                       width: 1,
                     ),
                   ),
@@ -271,16 +283,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           height: 14,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary),
                           ),
                         )
                       else
-                        Icon(Icons.refresh, size: 16, color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary),
+                        Icon(
+                            Platform.isIOS
+                                ? CupertinoIcons.arrow_clockwise
+                                : Icons.refresh,
+                            size: 16,
+                            color: isDark
+                                ? AppColors.textSecondary
+                                : AppColors.lightTextSecondary),
                       const SizedBox(width: 4),
                       Text(
                         'Reload',
                         style: AppTypography.labelSmall.copyWith(
-                          color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+                          color: isDark
+                              ? AppColors.textSecondary
+                              : AppColors.lightTextSecondary,
                         ),
                       ),
                     ],
@@ -294,10 +316,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ? Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.inputBackground : AppColors.lightInputBackground,
+                    color: isDark
+                        ? AppColors.inputBackground
+                        : AppColors.lightInputBackground,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark ? AppColors.inputBorder : AppColors.lightInputBorder,
+                      color: isDark
+                          ? AppColors.inputBorder
+                          : AppColors.lightInputBorder,
                       width: 1,
                     ),
                   ),
@@ -305,7 +331,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     child: Text(
                       'Tap Reload to fetch stock list',
                       style: TextStyle(
-                        color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
+                        color: isDark
+                            ? AppColors.textTertiary
+                            : AppColors.lightTextTertiary,
                       ),
                     ),
                   ),
@@ -317,7 +345,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     controller: _stockSearchController,
                     focusNode: _stockFocusNode,
                     hintText: 'Search stock...',
-                    suffixIcon: const Icon(Icons.arrow_drop_down, size: 24),
+                    suffixIcon: Icon(
+                        Platform.isIOS
+                            ? CupertinoIcons.chevron_down
+                            : Icons.arrow_drop_down,
+                        size: 24),
                     onTap: () {
                       setState(() => _showStockDropdown = true);
                     },
@@ -330,7 +362,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Widget _buildStockDropdown(bool isDark) {
-    if (!_showStockDropdown || _filteredStocks.isEmpty) return const SizedBox.shrink();
+    if (!_showStockDropdown || _filteredStocks.isEmpty)
+      return const SizedBox.shrink();
 
     return CompositedTransformFollower(
       link: _stockOverlayLink,
@@ -346,10 +379,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           constraints: const BoxConstraints(maxHeight: 240),
           width: MediaQuery.of(context).size.width - 40,
           decoration: BoxDecoration(
-            color: isDark ? AppColors.inputBackground : AppColors.lightInputBackground,
+            color: isDark
+                ? AppColors.inputBackground
+                : AppColors.lightInputBackground,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isDark ? AppColors.inputBorder : AppColors.lightInputBorder,
+              color:
+                  isDark ? AppColors.inputBorder : AppColors.lightInputBorder,
               width: 1,
             ),
           ),
@@ -365,12 +401,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 title: Text(
                   '${stock.ticker} - ${stock.name}',
                   style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-                    color: isDark ? AppColors.textPrimary : AppColors.lightTextPrimary,
+                    fontWeight:
+                        isSelected ? FontWeight.w700 : FontWeight.normal,
+                    color: isDark
+                        ? AppColors.textPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                 ),
                 trailing: isSelected
-                    ? const Icon(Icons.check, color: AppColors.primary)
+                    ? Icon(
+                        Platform.isIOS
+                            ? CupertinoIcons.checkmark_alt
+                            : Icons.check,
+                        color: AppColors.primary)
                     : null,
                 onTap: () => _selectStock(stock),
               );
@@ -387,7 +430,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       child: AppDateField(
         label: 'Date',
         controller: _dateController,
-        onDateSelected: (date) => setState(() => _dateController.text = FormatUtils.date(date)),
+        onDateSelected: (date) =>
+            setState(() => _dateController.text = FormatUtils.date(date)),
       ),
     );
   }
@@ -459,7 +503,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             Text(
               'Total',
               style: AppTypography.labelSmall.copyWith(
-                color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+                color: isDark
+                    ? AppColors.textSecondary
+                    : AppColors.lightTextSecondary,
                 letterSpacing: 1,
               ),
             ),

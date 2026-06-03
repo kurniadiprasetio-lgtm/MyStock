@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format_utils.dart';
@@ -36,9 +38,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       title: 'DivVest',
       showBackButton: false,
       actions: [
-        const AppIconButton(icon: Icons.notifications_outlined),
+        AppIconButton(icon: Platform.isIOS ? CupertinoIcons.bell : Icons.notifications_outlined),
         const SizedBox(width: 8),
-        const AppIconButton(icon: Icons.settings_outlined),
+        AppIconButton(icon: Platform.isIOS ? CupertinoIcons.settings : Icons.settings_outlined),
       ],
       body: Consumer<PortfolioProvider>(
         builder: (context, provider, child) {
@@ -83,7 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selamat Datang',
+            'Welcome',
             style: AppTypography.bodyMedium.copyWith(
               color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
             ),
@@ -199,7 +201,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Modal tercover via dividen • Est. BEP: Q3 2026',
+            'Capital covered via dividends • Est. BEP: Q3 2026',
             style: AppTypography.bodySmall.copyWith(
               color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary,
             ),
@@ -217,23 +219,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Expanded(
             child: StatCard(
-              icon: Icons.payments_outlined,
+              icon: Platform.isIOS ? CupertinoIcons.money_dollar : Icons.payments_outlined,
               iconColor: AppColors.success,
               label: 'Monthly Income',
               value: FormatUtils.currencyShort(provider.monthlyIncome),
-              change: '↑ 12% vs last month',
-              changePositive: true,
+              change: provider.monthlyIncomeChange == 0 && provider.monthlyIncome == 0
+                  ? 'No change'
+                  : '${provider.monthlyIncomeChange >= 0 ? "↑" : "↓"} ${provider.monthlyIncomeChange.abs().toStringAsFixed(1)}% vs last month',
+              changePositive: provider.monthlyIncomeChange >= 0,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: StatCard(
-              icon: Icons.trending_up_outlined,
+              icon: Platform.isIOS ? CupertinoIcons.chart_bar : Icons.trending_up_outlined,
               iconColor: AppColors.primary,
               label: 'Yield on Cost',
               value: FormatUtils.percentage(provider.yieldOnCost),
-              change: '↑ 0.3% vs last year',
-              changePositive: true,
+              change: provider.yieldOnCostChange == 0
+                  ? 'No change'
+                  : '${provider.yieldOnCostChange >= 0 ? "↑" : "↓"} ${provider.yieldOnCostChange.abs().toStringAsFixed(2)}% vs last year',
+              changePositive: provider.yieldOnCostChange >= 0,
             ),
           ),
         ],

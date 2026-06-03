@@ -266,4 +266,60 @@ class YahooFinanceApi {
       return null;
     }
   }
+  static Future<List<DividendRecord>?> fetchDividends(String ticker) async {
+    final symbol = '${ticker.toUpperCase()}.JK';
+    final url = Uri.parse('https://query1.finance.yahoo.com/v8/finance/chart/$symbol?interval=1d&range=5y&events=div');
+    try {
+      debugPrint('[YahooFinanceApi] Fetching dividends for $ticker ($symbol)...');
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode != 200) {
+        debugPrint('[YahooFinanceApi] Failed to fetch dividends for $ticker: HTTP ${response.statusCode}');
+        debugPrint('[YahooFinanceApi] Response: ${response.body}');
+        return null;
+      }
+      
+      final data = json.decode(response.body);
+      final result = data['chart']['result'] as List?;
+      if (result == null || result.isEmpty) {
+        debugPrint('[YahooFinanceApi] No result data for $ticker dividends');
+        return null;
+      }
+      
+      final events = result[0]['events'] as Map<String, dynamic>?;
+      final dividendsMap = events?['dividends'] as Map<String, dynamic>?;
+      if (dividendsMap == null) {
+        debugPrint('[YahooFinanceApi] No dividends found for $ticker');
+        return null;
+      }
+      
+      final List<DividendRecord> records = [];
+      dividendsMap.forEach((dateStr, dividendInfo) {
+        final exDate = DateTime.fromMillisecondsSinceEpoch(int.parse(dateStr) * 1000);
+        final amount = (dividendInfo['amount'] as num).toDouble();
+        final dividendPerLot = amount;
+        records.add(DividendRecord(
+          ticker: ticker,
+          exDate: exDate,
+          paymentDate: exDate,
+          dividendPerLot: dividendPerLot,
+          dividendType: DividendType.cash,
+          lotsHeldAtExDate: 0,
+          taxRate: 0,
+          reinvestEntryId: null,
+        ));
+      });
+      
+      debugPrint('[YahooFinanceApi] Found ${records.length} dividends for $ticker');
+      return records;
+    } catch (e) {
+      debugPrint('[YahooFinanceApi] Error fetching dividends for $ticker: $e');
+      return null;
+    }
+  }
 }

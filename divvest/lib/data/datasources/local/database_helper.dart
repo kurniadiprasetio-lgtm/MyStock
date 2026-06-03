@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -19,9 +20,18 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      debugPrint('[Database] Migrating dividend records: converting dividendPerLot to per-share...');
+      await db.execute('UPDATE dividend_records SET dividendPerLot = dividendPerLot / 100.0');
+      debugPrint('[Database] Migration complete');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {

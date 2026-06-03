@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/datasources/local/database_helper.dart';
 import '../../providers/theme_provider.dart';
-import '../../routes/app_router.dart';
+import '../about/about_screen.dart';
+import '../backup_restore/backup_restore_screen.dart';
+import '../export_data/export_data_screen.dart';
 import '../../widgets/components/components.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -27,9 +31,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _isResetting = true);
       try {
         final db = await DatabaseHelper.instance.database;
-        await db.execute('DELETE FROM stocks');
-        await db.execute('DELETE FROM portfolio_entries');
         await db.execute('DELETE FROM dividend_records');
+        await db.execute('DELETE FROM portfolio_entries');
+        await db.execute('DELETE FROM stocks');
+        await db.execute("DELETE FROM sqlite_sequence WHERE name='portfolio_entries'");
+        await db.execute("DELETE FROM sqlite_sequence WHERE name='dividend_records'");
         if (mounted) {
           setState(() => _isResetting = false);
           AppSnackBar.showSuccess(context, 'All data cleared');
@@ -60,26 +66,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildProfileItem(isDark),
               _buildSectionTitle('Data', isDark),
               _buildSettingsItem(
-                icon: Icons.upload_file_outlined,
+                icon: Platform.isIOS ? CupertinoIcons.square_arrow_up : Icons.upload_file_outlined,
                 title: 'Export Data',
                 subtitle: 'Export to CSV/Excel',
                 isDark: isDark,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExportDataScreen())),
               ),
               _buildSettingsItem(
-                icon: Icons.backup_outlined,
+                icon: Platform.isIOS ? CupertinoIcons.arrow_2_squarepath : Icons.backup_outlined,
                 title: 'Backup & Restore',
                 subtitle: 'Local file backup',
                 isDark: isDark,
-                onTap: () => AppRouter.push(context, AppRoutes.backupRestore),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupRestoreScreen())),
               ),
               _buildSettingsItem(
-                icon: Icons.sync_outlined,
+                icon: Platform.isIOS ? CupertinoIcons.arrow_clockwise : Icons.sync_outlined,
                 title: 'Sync Prices',
                 subtitle: 'Last sync: 5 min ago',
                 isDark: isDark,
               ),
               _buildSettingsItem(
-                icon: Icons.delete_outline,
+                icon: Platform.isIOS ? CupertinoIcons.trash : Icons.delete_outline,
                 title: 'Clear All Data',
                 subtitle: 'Delete all stocks, transactions, and dividends',
                 isDark: isDark,
@@ -89,32 +96,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               _buildSectionTitle('Preferences', isDark),
               _buildToggleItem(
-                icon: Icons.dark_mode_outlined,
+                icon: Platform.isIOS ? CupertinoIcons.moon_fill : Icons.dark_mode_outlined,
                 title: 'Dark Mode',
                 value: themeProvider.isDarkMode,
                 onChanged: (value) => themeProvider.setDarkMode(value),
                 isDark: isDark,
               ),
               _buildToggleItem(
-                icon: Icons.notifications_outlined,
+                icon: Platform.isIOS ? CupertinoIcons.bell : Icons.notifications_outlined,
                 title: 'Notifications',
                 value: true,
                 onChanged: (_) {},
                 isDark: isDark,
               ),
               _buildSettingsItemWithValue(
-                icon: Icons.percent_outlined,
+                icon: Platform.isIOS ? CupertinoIcons.percent : Icons.percent_outlined,
                 title: 'Default Tax Rate',
                 value: '10%',
                 isDark: isDark,
               ),
               _buildSectionTitle('About', isDark),
               _buildSettingsItem(
-                icon: Icons.info_outline,
+                icon: Platform.isIOS ? CupertinoIcons.info : Icons.info_outline,
                 title: 'About DivVest',
                 subtitle: 'Version 1.0.0',
                 isDark: isDark,
-                onTap: () => AppRouter.push(context, AppRoutes.about),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
               ),
               const SizedBox(height: 20),
             ],
@@ -131,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            _buildIconContainer(Icons.person_outline),
+            _buildIconContainer(Platform.isIOS ? CupertinoIcons.person : Icons.person_outline),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -153,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 20, color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary),
+            Icon(Platform.isIOS ? CupertinoIcons.chevron_right : Icons.chevron_right, size: 20, color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary),
           ],
         ),
       ),
@@ -186,6 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       child: GestureDetector(
         onTap: onTap,
+        behavior: HitTestBehavior.opaque,
         child: AppCard(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -212,7 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 20, color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary),
+              Icon(Platform.isIOS ? CupertinoIcons.chevron_right : Icons.chevron_right, size: 20, color: isDark ? AppColors.textTertiary : AppColors.lightTextTertiary),
             ],
           ),
         ),
@@ -265,6 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       child: GestureDetector(
         onTap: () => onChanged(!value),
+        behavior: HitTestBehavior.opaque,
         child: AppCard(
           padding: const EdgeInsets.all(14),
           child: Row(

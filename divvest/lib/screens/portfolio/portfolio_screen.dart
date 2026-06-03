@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format_utils.dart';
@@ -43,11 +45,15 @@ class _PortfolioScreenState extends State<PortfolioScreen> with WidgetsBindingOb
       title: 'Portfolio',
       showBackButton: false,
       actions: [
-        const AppIconButton(icon: Icons.search_outlined),
+        AppIconButton(icon: Platform.isIOS ? CupertinoIcons.search : Icons.search_outlined),
         const SizedBox(width: 8),
         AppIconButton(
-          icon: Icons.add,
-          onPressed: () => AppRouter.push(context, AppRoutes.addTransaction),
+          icon: Platform.isIOS ? CupertinoIcons.add : Icons.add,
+          onPressed: () => AppRouter.push(context, AppRoutes.addTransaction).then((_) {
+            if (context.mounted) {
+              context.read<PortfolioProvider>().loadPortfolio();
+            }
+          }),
         ),
       ],
       body: SafeArea(

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -38,10 +40,13 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     super.initState();
     isBuy = true;
     _stockController = TextEditingController(text: widget.entry.ticker);
-    _dateController = TextEditingController(text: FormatUtils.date(widget.entry.buyDate));
+    _dateController =
+        TextEditingController(text: FormatUtils.date(widget.entry.buyDate));
     _lotsController = TextEditingController(text: widget.entry.lots.toString());
-    _priceController = TextEditingController(text: widget.entry.pricePerLot.toStringAsFixed(0));
-    _feeController = TextEditingController(text: widget.entry.fee.toStringAsFixed(0));
+    _priceController = TextEditingController(
+        text: widget.entry.pricePerLot.toStringAsFixed(0));
+    _feeController =
+        TextEditingController(text: widget.entry.fee.toStringAsFixed(0));
     _notesController = TextEditingController(text: widget.entry.notes);
   }
 
@@ -93,7 +98,8 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     final confirmed = await AppDialog.showDeleteConfirmation(
       context: context,
       title: 'Delete Transaction',
-      message: 'Are you sure you want to delete this ${widget.entry.ticker} transaction?',
+      message:
+          'Are you sure you want to delete this ${widget.entry.ticker} transaction?',
     );
 
     if (confirmed == true && mounted) {
@@ -115,7 +121,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
       title: 'Edit Transaction',
       actions: [
         AppIconButton(
-          icon: Icons.delete_outline,
+          icon: Platform.isIOS ? CupertinoIcons.trash : Icons.delete_outline,
           onPressed: _delete,
           backgroundColor: const Color.fromRGBO(239, 68, 68, 0.1),
           borderColor: const Color.fromRGBO(239, 68, 68, 0.3),
@@ -189,7 +195,9 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
         label: 'Date',
         controller: _dateController,
         readOnly: true,
-        suffixIcon: const Icon(Icons.calendar_today, size: 18),
+        suffixIcon: Icon(
+            Platform.isIOS ? CupertinoIcons.calendar : Icons.calendar_today,
+            size: 18),
       ),
     );
   }
@@ -261,7 +269,9 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
             Text(
               'Total',
               style: AppTypography.labelSmall.copyWith(
-                color: isDark ? AppColors.textSecondary : AppColors.lightTextSecondary,
+                color: isDark
+                    ? AppColors.textSecondary
+                    : AppColors.lightTextSecondary,
                 letterSpacing: 1,
               ),
             ),
